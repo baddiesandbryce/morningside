@@ -2792,15 +2792,19 @@ const FRUIT_FILMS_B64=[
 "dG1sPgo="
 ].join('');
 
-let filmDocUrl=null;
-function filmDoc(){
-  if(filmDocUrl) return filmDocUrl;
+let filmHtmlCache=null;
+/* Decode the embedded shorts to an HTML string. We hand this to the iframe
+   via srcdoc rather than a blob: URL: hosts (Suga/Cloudflare) send a
+   Content-Security-Policy whose frame-src omits blob:, which silently blocks
+   a blob iframe. srcdoc content inherits this page's policy (which allows
+   'unsafe-inline'), so the films' inline animation still runs. */
+function filmHtml(){
+  if(filmHtmlCache) return filmHtmlCache;
   const bin=atob(FRUIT_FILMS_B64);
   const bytes=Uint8Array.from(bin, c=>c.charCodeAt(0));
   /* it has emoji in it, so decode as real UTF-8 rather than latin-1 */
-  const html=new TextDecoder('utf-8').decode(bytes);
-  filmDocUrl=URL.createObjectURL(new Blob([html], {type:'text/html'}));
-  return filmDocUrl;
+  filmHtmlCache=new TextDecoder('utf-8').decode(bytes);
+  return filmHtmlCache;
 }
 
 function watchFilms(where){
@@ -2809,7 +2813,7 @@ function watchFilms(where){
   state.watching=true;
   document.getElementById('cinemaWhere').textContent=where||'NOW SHOWING';
   const f=document.getElementById('cinemaFrame');
-  f.src=filmDoc();
+  f.srcdoc=filmHtml();
   document.getElementById('cinemaOverlay').classList.add('on');
   if(document.pointerLockElement) document.exitPointerLock();
 }
@@ -2819,6 +2823,7 @@ function stopWatching(){
   state.watching=false;
   document.getElementById('cinemaOverlay').classList.remove('on');
   const f=document.getElementById('cinemaFrame');
+  f.removeAttribute('srcdoc');
   f.src='about:blank';                       // stop it running in the background
   /* time passes while you watch, and sitting still is restful */
   state.minutes+=95;
