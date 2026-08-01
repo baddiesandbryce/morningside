@@ -1,0 +1,7 @@
+# Serves the static game with nginx. Suga reads this file to build and deploy.
+services:
+  web:
+    build: .
+    ports:
+      - "80:80"
+    restart: unless-stopped
